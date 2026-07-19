@@ -2,72 +2,269 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Dota Draft</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dota Draft Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #121212; color: #fff; font-family: sans-serif; padding: 10px; }
-        #searchInput { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: none; background: #222; color: #fff; box-sizing: border-box; }
-        .hero-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-        .hero-item { cursor: pointer; text-align: center; }
-        .hero-item img { width: 100%; border-radius: 4px; border: 2px solid transparent; }
-        .hero-item:hover img { border-color: #ff9800; }
-        .draft-list { margin-top: 15px; padding: 10px; background: #1e1e1e; border-radius: 8px; }
-        .btn-send { background: #388e3c; color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; margin-top: 20px; font-weight: bold; }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            background: #121212;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            padding: 12px;
+        }
+        h2 {
+            margin: 0 0 10px;
+        }
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            background: #222;
+            color: #fff;
+        }
+        button {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 8px;
+            background: #2e7d32;
+            color: #fff;
+            cursor: pointer;
+        }
+        .mode button {
+            background: #333;
+        }
+        .mode .active {
+            background: #1976d2;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .hero {
+            cursor: pointer;
+            text-align: center;
+        }
+        .hero img {
+            width: 100%;
+            border-radius: 6px;
+            border: 2px solid transparent;
+            background: #1e1e1e;
+        }
+        .hero.selected img {
+            border-color: #00e676;
+            opacity: 0.65;
+        }
+        .hero small {
+            display: block;
+            font-size: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .panel {
+            margin-top: 14px;
+            background: #1d1d1d;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .item button {
+            background: #b71c1c;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .rolebar {
+            display: flex;
+            gap: 4px;
+            margin: 10px 0;
+        }
+        .role {
+            background: #444;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+        }
+        .role.active {
+            background: #ff9800;
+        }
+        .mode {
+            display: flex;
+            gap: 8px;
+        }
+        #send {
+            margin-top: 12px;
+            width: 100%;
+            background: #0d6efd;
+        }
     </style>
 </head>
 <body>
-    <input type="text" id="searchInput" placeholder="Поиск героя..." oninput="filterHeroes()">
-    <div class="hero-grid" id="heroGrid"></div>
-    <div class="draft-list">
-        <h3>Враги: <span id="eList"></span></h3>
-        <h3>Союзники: <span id="aList"></span></h3>
+    <h2>⚔️ Dota Draft</h2>
+    <div class="toolbar">
+        <input id="search" placeholder="🔍 Поиск героя...">
     </div>
-    <button class="btn-send" onclick="sendToBot()">АНАЛИЗИРОВАТЬ ПИК 🚀</button>
+    <div class="mode">
+        <button id="allyBtn" class="active">🤝 Союзники</button>
+        <button id="enemyBtn">👹 Враги</button>
+    </div>
+    <div class="rolebar" id="roles"></div>
+    <div class="grid" id="grid"></div>
+
+    <div class="panel">
+        <h3>🟢 Союзники</h3>
+        <div id="allies"></div>
+        <h3>🔴 Враги</h3>
+        <div id="enemies"></div>
+        <button id="send">📤 Отправить в бота</button>
+    </div>
 
     <script>
-        let tg = window.Telegram.WebApp; tg.expand();
-        let heroes = []; let draft = { enemies: [], allies: [] };
+        const tg = window.Telegram?.WebApp;
+        if (tg) tg.expand();
 
-        fetch('https://raw.githubusercontent.com/odota/dotaconstants/master/build/heroes.json')
+        let heroes = [];
+        let mode = "allies";
+        let role = "1";
+        const draft = { allies: [], enemies: [] };
+
+        // Роли 1-5
+        const rolesContainer = document.getElementById('roles');
+        for (let i = 1; i <= 5; i++) {
+            let btn = document.createElement("button");
+            btn.className = "role" + (i === 1 ? " active" : "");
+            btn.textContent = i;
+            btn.onclick = () => {
+                role = "" + i;
+                document.querySelectorAll(".role").forEach(x => x.classList.remove("active"));
+                btn.classList.add("active");
+            };
+            rolesContainer.appendChild(btn);
+        }
+
+        const allyBtn = document.getElementById('allyBtn');
+        const enemyBtn = document.getElementById('enemyBtn');
+        const search = document.getElementById('search');
+        const grid = document.getElementById('grid');
+        const sendBtn = document.getElementById('send');
+
+        allyBtn.onclick = () => {
+            mode = "allies";
+            allyBtn.classList.add("active");
+            enemyBtn.classList.remove("active");
+        };
+        enemyBtn.onclick = () => {
+            mode = "enemies";
+            enemyBtn.classList.add("active");
+            allyBtn.classList.remove("active");
+        };
+
+        // Загрузка героев
+        fetch("https://raw.githubusercontent.com/odota/dotaconstants/master/build/heroes.json")
             .then(r => r.json())
-            .then(data => { heroes = Object.values(data); renderGrid(heroes); });
+            .then(data => {
+                heroes = Object.values(data);
+                draw(heroes);
+            })
+            .catch(() => alert("Не удалось загрузить героев"));
 
-        function renderGrid(list) {
-            const grid = document.getElementById('heroGrid');
-            grid.innerHTML = list.map(h => `
-                <div class="hero-item" onclick="addHero('${h.localized_name}')">
-                    <img src="https://cdn.dota2.com/apps/dota2/images/heroes/${h.name.replace('npc_dota_hero_', '')}_sb.png">
-                </div>
-            `).join('');
+        search.oninput = () => {
+            const query = search.value.toLowerCase();
+            draw(heroes.filter(h =>
+                h.localized_name.toLowerCase().includes(query) ||
+                h.name.toLowerCase().includes(query)
+            ));
+        };
+
+        function exists(name) {
+            return draft.allies.concat(draft.enemies).some(x => x.name === name);
         }
 
-        function filterHeroes() {
-            let val = document.getElementById('searchInput').value.toLowerCase();
-            renderGrid(heroes.filter(h => h.localized_name.toLowerCase().includes(val)));
+        function draw(list) {
+            grid.innerHTML = "";
+            list.forEach(h => {
+                // Формируем имя файла: убираем "npc_dota_hero_"
+                const imgName = h.name.replace("npc_dota_hero_", "");
+                // Используем правильный URL для картинок
+                const imgUrl = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${imgName}.png`;
+
+                const card = document.createElement("div");
+                card.className = "hero" + (exists(h.localized_name) ? " selected" : "");
+
+                card.innerHTML = `
+                    <img src="${imgUrl}" alt="${h.localized_name}" loading="lazy" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2236%22%3E%3Crect width=%2264%22 height=%2236%22 fill=%22%23333%22/%3E%3Ctext x=%2232%22 y=%2222%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2212%22 font-family=%22Arial%22%3E${h.localized_name.substring(0,3)}%3C/text%3E%3C/svg%3E'">
+                    <small>${h.localized_name}</small>
+                `;
+
+                card.onclick = () => {
+                    if (exists(h.localized_name)) return;
+                    draft[mode].push({ id: h.id, name: h.localized_name, role });
+                    renderLists();
+                    // Перерисовываем с учётом фильтра
+                    const query = search.value.toLowerCase();
+                    draw(heroes.filter(h2 =>
+                        h2.localized_name.toLowerCase().includes(query) ||
+                        h2.name.toLowerCase().includes(query)
+                    ));
+                };
+
+                grid.appendChild(card);
+            });
         }
 
-        function addHero(name) {
-            let role = prompt(`Позиция для ${name} (1-5)?`, "");
-            if (role === null) return;
-            if(confirm("Добавить во Враги? (Отмена = Союзники)")) {
-                draft.enemies.push({name, role: role || "?"});
-            } else {
-                draft.allies.push({name, role: role || "?"});
+        function renderLists() {
+            for (const side of ["allies", "enemies"]) {
+                const box = document.getElementById(side);
+                box.innerHTML = "";
+                draft[side].forEach((h, i) => {
+                    const div = document.createElement("div");
+                    div.className = "item";
+                    div.innerHTML = `<span>${h.name} (pos ${h.role})</span>`;
+                    const removeBtn = document.createElement("button");
+                    removeBtn.textContent = "✕";
+                    removeBtn.onclick = () => {
+                        draft[side].splice(i, 1);
+                        renderLists();
+                        const query = search.value.toLowerCase();
+                        draw(heroes.filter(h2 =>
+                            h2.localized_name.toLowerCase().includes(query) ||
+                            h2.name.toLowerCase().includes(query)
+                        ));
+                    };
+                    div.appendChild(removeBtn);
+                    box.appendChild(div);
+                });
             }
-            updateDraftView();
         }
 
-        function updateDraftView() {
-            document.getElementById('eList').innerText = draft.enemies.map(h => `${h.name}:${h.role}`).join(', ');
-            document.getElementById('aList').innerText = draft.allies.map(h => `${h.name}:${h.role}`).join(', ');
-        }
-
-        function sendToBot() {
-            tg.sendData(JSON.stringify({
-                enemies: draft.enemies.map(h => `${h.name}:${h.role}`).join(", "),
-                allies: draft.allies.map(h => `${h.name}:${h.role}`).join(", ")
-            }));
-        }
+        sendBtn.onclick = () => {
+            if (!draft.allies.length && !draft.enemies.length) {
+                alert("Добавьте хотя бы одного героя");
+                return;
+            }
+            const data = JSON.stringify(draft);
+            if (tg) tg.sendData(data);
+            else alert(data);
+        };
     </script>
 </body>
 </html>
