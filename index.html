@@ -2,12 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dota Draft</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { background: #121212; color: #fff; font-family: sans-serif; padding: 10px; }
-        #searchInput { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: none; background: #222; color: #fff; }
+        #searchInput { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: none; background: #222; color: #fff; box-sizing: border-box; }
         .hero-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
         .hero-item { cursor: pointer; text-align: center; }
         .hero-item img { width: 100%; border-radius: 4px; border: 2px solid transparent; }
@@ -17,38 +16,27 @@
     </style>
 </head>
 <body>
-
-    <input type="text" id="searchInput" placeholder="Быстрый поиск героя..." oninput="filterHeroes()">
-
+    <input type="text" id="searchInput" placeholder="Поиск героя..." oninput="filterHeroes()">
     <div class="hero-grid" id="heroGrid"></div>
-
     <div class="draft-list">
         <h3>Враги: <span id="eList"></span></h3>
         <h3>Союзники: <span id="aList"></span></h3>
     </div>
-
-    <button class="btn-send" onclick="sendToBot()">АНАЛИЗИРОВАТЬ 🚀</button>
+    <button class="btn-send" onclick="sendToBot()">АНАЛИЗИРОВАТЬ ПИК 🚀</button>
 
     <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-        
-        let heroes = []; // Сюда загрузим список героев
-        let draft = { enemies: [], allies: [] };
+        let tg = window.Telegram.WebApp; tg.expand();
+        let heroes = []; let draft = { enemies: [], allies: [] };
 
-        // Загружаем список героев с OpenDota
         fetch('https://raw.githubusercontent.com/odota/dotaconstants/master/build/heroes.json')
             .then(r => r.json())
-            .then(data => {
-                heroes = Object.values(data);
-                renderGrid(heroes);
-            });
+            .then(data => { heroes = Object.values(data); renderGrid(heroes); });
 
         function renderGrid(list) {
             const grid = document.getElementById('heroGrid');
             grid.innerHTML = list.map(h => `
                 <div class="hero-item" onclick="addHero('${h.localized_name}')">
-                    <img src="https://api.opendota.com/apps/dota2/images/dota_react/heroes/${h.name.replace('npc_dota_hero_', '')}.png">
+                    <img src="https://cdn.dota2.com/apps/dota2/images/heroes/${h.name.replace('npc_dota_hero_', '')}_sb.png">
                 </div>
             `).join('');
         }
@@ -61,8 +49,6 @@
         function addHero(name) {
             let role = prompt(`Позиция для ${name} (1-5)?`, "");
             if (role === null) return;
-            
-            // Спрашиваем, куда добавить
             if(confirm("Добавить во Враги? (Отмена = Союзники)")) {
                 draft.enemies.push({name, role: role || "?"});
             } else {
@@ -72,8 +58,8 @@
         }
 
         function updateDraftView() {
-            document.getElementById('eList').innerText = draft.enemies.map(h => h.name).join(', ');
-            document.getElementById('aList').innerText = draft.allies.map(h => h.name).join(', ');
+            document.getElementById('eList').innerText = draft.enemies.map(h => `${h.name}:${h.role}`).join(', ');
+            document.getElementById('aList').innerText = draft.allies.map(h => `${h.name}:${h.role}`).join(', ');
         }
 
         function sendToBot() {
