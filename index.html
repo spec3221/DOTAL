@@ -2,60 +2,209 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dota 2 Draft Picker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dota 2 Visual Draft</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { 
             background-color: #121212; color: #ffffff; 
-            font-family: Arial, sans-serif; padding: 20px; margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; padding: 15px; user-select: none;
         }
-        h2 { color: #ff4c4c; text-align: center; text-transform: uppercase; }
-        .box { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; color: #aaa; font-weight: bold; font-size: 14px;}
-        input { 
-            width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #333; 
-            background: #2a2a2a; color: white; box-sizing: border-box; font-size: 16px;
+        
+        /* Панель выбранных героев */
+        .status-panel { background: #1e1e1e; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .status-row { margin-bottom: 10px; font-weight: bold; font-size: 14px; color: #aaa; }
+        .status-row span { color: #fff; font-weight: normal; }
+        
+        /* Переключатель режимов */
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab-btn {
+            flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; 
+            cursor: pointer; background: #2a2a2a; color: #aaa; transition: 0.2s;
         }
-        input:focus { border-color: #ff4c4c; outline: none; }
-        button { 
-            width: 100%; padding: 16px; background: #e50914; color: white; 
-            border: none; border-radius: 8px; font-weight: bold; font-size: 16px; 
-            cursor: pointer; text-transform: uppercase;
+        .tab-btn.active-enemy { background: #e53935; color: white; box-shadow: 0 0 10px rgba(229, 57, 53, 0.4); }
+        .tab-btn.active-ally { background: #43a047; color: white; box-shadow: 0 0 10px rgba(67, 160, 71, 0.4); }
+
+        /* Поиск */
+        input[type="text"] {
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; 
+            background: #1e1e1e; color: white; box-sizing: border-box; font-size: 16px; margin-bottom: 15px;
+        }
+        input:focus { outline: none; border-color: #777; }
+
+        /* Сетка героев */
+        .grid { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); 
+            gap: 8px; max-height: 50vh; overflow-y: auto; padding-bottom: 20px;
+        }
+        .hero-card { 
+            position: relative; border-radius: 6px; overflow: hidden; cursor: pointer; 
+            border: 2px solid transparent; transition: 0.1s;
+        }
+        .hero-card img { width: 100%; height: auto; display: block; }
+        
+        /* Эффекты выбора */
+        .hero-card.enemy { border-color: #e53935; filter: brightness(0.6); }
+        .hero-card.ally { border-color: #43a047; filter: brightness(0.6); }
+        .hero-card.disabled { opacity: 0.3; pointer-events: none; }
+        
+        .hero-name-badge {
+            position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8);
+            font-size: 10px; text-align: center; padding: 2px 0; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+        }
+
+        /* Главная кнопка */
+        .submit-btn {
+            position: fixed; bottom: 15px; left: 15px; right: 15px;
+            width: calc(100% - 30px); padding: 16px; background: linear-gradient(135deg, #e53935, #b71c1c); 
+            color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; 
+            cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 15px rgba(229, 57, 53, 0.4); z-index: 10;
         }
     </style>
 </head>
 <body>
-    <h2>Dota 2 Драфт</h2>
-    
-    <div class="box">
-        <label>Враги (через запятую):</label>
-        <input type="text" id="enemies" placeholder="Axe, Pudge, Invoker">
+
+    <div class="status-panel">
+        <div class="status-row">Враги (до 5): <span id="enemy-list">Пусто</span></div>
+        <div class="status-row" style="margin-bottom:0;">Союзники (до 4): <span id="ally-list">Пусто</span></div>
     </div>
 
-    <div class="box">
-        <label>Союзники (кого уже взяли):</label>
-        <input type="text" id="allies" placeholder="Lion, Juggernaut">
+    <div class="tabs">
+        <button id="btn-enemy" class="tab-btn active-enemy" onclick="setMode('enemy')">🔴 Выбор Врагов</button>
+        <button id="btn-ally" class="tab-btn" onclick="setMode('ally')">🟢 Выбор Союзников</button>
     </div>
 
-    <button onclick="sendDraft()">Подобрать героя</button>
+    <input type="text" id="search" placeholder="Поиск героя..." oninput="filterHeroes()">
+
+    <div class="grid" id="heroes-grid">
+        <p style="text-align: center; width: 100%; color: #aaa;">Загрузка списка героев с серверов Dota 2...</p>
+    </div>
+
+    <!-- Заглушка, чтобы сетка не перекрывалась нижней кнопкой -->
+    <div style="height: 70px;"></div> 
+
+    <button class="submit-btn" onclick="sendDraft()">Анализировать Драфт</button>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        function sendDraft() {
-            const enemies = document.getElementById('enemies').value.trim();
-            const allies = document.getElementById('allies').value.trim();
+        let heroesData = [];
+        let enemies = [];
+        let allies = [];
+        let currentMode = 'enemy';
+
+        // Загружаем героев через официальный API OpenDota
+        async function fetchHeroes() {
+            try {
+                const response = await fetch('https://api.opendota.com/api/heroStats');
+                heroesData = await response.json();
+                
+                // Сортируем героев по алфавиту для удобства
+                heroesData.sort((a, b) => a.localized_name.localeCompare(b.localized_name));
+                renderGrid();
+            } catch (error) {
+                document.getElementById('heroes-grid').innerHTML = '<p style="color:red; text-align:center;">Ошибка загрузки базы. Проверьте интернет.</p>';
+            }
+        }
+
+        // Отрисовка сетки
+        function renderGrid(searchQuery = '') {
+            const grid = document.getElementById('heroes-grid');
+            grid.innerHTML = '';
+
+            heroesData.forEach(hero => {
+                const name = hero.localized_name;
+                
+                // Фильтр по поиску
+                if (searchQuery && !name.toLowerCase().includes(searchQuery.toLowerCase())) return;
+
+                const card = document.createElement('div');
+                card.className = 'hero-card';
+                card.id = `hero-${hero.id}`;
+                card.onclick = () => toggleHero(name, hero.id);
+
+                // Восстановление состояния при отрисовке (поиск/фильтр)
+                if (enemies.includes(name)) card.classList.add('enemy');
+                else if (allies.includes(name)) card.classList.add('ally');
+
+                card.innerHTML = `
+                    <img src="https://api.opendota.com${hero.img}" alt="${name}" loading="lazy">
+                    <div class="hero-name-badge">${name}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Переключение режимов выбора
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btn-enemy').className = 'tab-btn ' + (mode === 'enemy' ? 'active-enemy' : '');
+            document.getElementById('btn-ally').className = 'tab-btn ' + (mode === 'ally' ? 'active-ally' : '');
+        }
+
+        // Логика клика по герою
+        function toggleHero(name, id) {
+            const card = document.getElementById(`hero-${id}`);
+
+            if (currentMode === 'enemy') {
+                if (enemies.includes(name)) {
+                    enemies = enemies.filter(e => e !== name);
+                    card.classList.remove('enemy');
+                } else {
+                    if (allies.includes(name)) return tg.showAlert("Этот герой уже в союзниках!");
+                    if (enemies.length >= 5) return tg.showAlert("Максимум 5 врагов!");
+                    enemies.push(name);
+                    card.classList.add('enemy');
+                }
+            } else {
+                if (allies.includes(name)) {
+                    allies = allies.filter(a => a !== name);
+                    card.classList.remove('ally');
+                } else {
+                    if (enemies.includes(name)) return tg.showAlert("Этот герой уже во врагах!");
+                    if (allies.length >= 4) return tg.showAlert("Максимум 4 союзника!");
+                    allies.push(name);
+                    card.classList.add('ally');
+                }
+            }
+            updateStatusPanel();
+        }
+
+        // Обновление текста сверху
+        function updateStatusPanel() {
+            document.getElementById('enemy-list').innerText = enemies.length > 0 ? enemies.join(', ') : 'Пусто';
+            document.getElementById('enemy-list').style.color = enemies.length > 0 ? '#ff4c4c' : '#fff';
             
-            if(!enemies) {
-                tg.showAlert("Введи хотя бы одного врага!");
-                return;
+            document.getElementById('ally-list').innerText = allies.length > 0 ? allies.join(', ') : 'Пусто';
+            document.getElementById('ally-list').style.color = allies.length > 0 ? '#43a047' : '#fff';
+        }
+
+        // Поиск по вводу
+        function filterHeroes() {
+            const query = document.getElementById('search').value;
+            renderGrid(query);
+        }
+
+        // Отправка данных боту
+        function sendDraft() {
+            if (enemies.length === 0) {
+                return tg.showAlert("Выбери хотя бы одного вражеского героя (нажми на картинку)!");
             }
             
-            tg.sendData(JSON.stringify({enemies: enemies, allies: allies}));
+            // Собираем имена через запятую, как того ждет наш Python-код!
+            const data = JSON.stringify({
+                enemies: enemies.join(', '), 
+                allies: allies.join(', ')
+            });
+            
+            tg.sendData(data);
             tg.close();
         }
+
+        // Запускаем загрузку героев при открытии
+        fetchHeroes();
     </script>
 </body>
 </html>
