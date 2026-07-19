@@ -12,11 +12,19 @@
             margin: 0; padding: 15px; user-select: none;
         }
         
-        /* Панель выбранных героев */
+        /* Панель выбранных героев (ТЕПЕРЬ С КАРТИНКАМИ) */
         .status-panel { background: #1e1e1e; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .status-row { margin-bottom: 10px; font-weight: bold; font-size: 14px; color: #aaa; }
-        .status-row span { color: #fff; font-weight: normal; }
+        .status-row { font-weight: bold; font-size: 14px; color: #aaa; margin-bottom: 15px; }
+        .status-row:last-child { margin-bottom: 0; }
         
+        /* Контейнер для маленьких иконок сверху */
+        .selected-heroes { display: flex; gap: 8px; margin-top: 8px; min-height: 40px; flex-wrap: wrap;}
+        .selected-heroes img { 
+            width: 65px; height: 36px; object-fit: cover; border-radius: 6px; 
+            border: 1px solid #444; box-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
+        .empty-text { color: #555; font-weight: normal; font-size: 14px; line-height: 36px; }
+
         /* Переключатель режимов */
         .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
         .tab-btn {
@@ -36,22 +44,21 @@
         /* Сетка героев */
         .grid { 
             display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); 
-            gap: 8px; max-height: 50vh; overflow-y: auto; padding-bottom: 20px;
+            gap: 8px; max-height: 45vh; overflow-y: auto; padding-bottom: 20px;
         }
         .hero-card { 
             position: relative; border-radius: 6px; overflow: hidden; cursor: pointer; 
-            border: 2px solid transparent; transition: 0.1s;
+            border: 2px solid transparent; transition: 0.1s; background: #222;
         }
         .hero-card img { width: 100%; height: auto; display: block; }
         
-        /* Эффекты выбора */
-        .hero-card.enemy { border-color: #e53935; filter: brightness(0.6); }
-        .hero-card.ally { border-color: #43a047; filter: brightness(0.6); }
-        .hero-card.disabled { opacity: 0.3; pointer-events: none; }
+        /* Эффекты выбора в сетке */
+        .hero-card.enemy { border-color: #e53935; filter: brightness(0.5); }
+        .hero-card.ally { border-color: #43a047; filter: brightness(0.5); }
         
         .hero-name-badge {
             position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8);
-            font-size: 10px; text-align: center; padding: 2px 0; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
+            font-size: 10px; text-align: center; padding: 3px 0; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;
         }
 
         /* Главная кнопка */
@@ -66,8 +73,12 @@
 <body>
 
     <div class="status-panel">
-        <div class="status-row">Враги (до 5): <span id="enemy-list">Пусто</span></div>
-        <div class="status-row" style="margin-bottom:0;">Союзники (до 4): <span id="ally-list">Пусто</span></div>
+        <div class="status-row">🔴 Вражеский пик (до 5): 
+            <div class="selected-heroes" id="enemy-list"><span class="empty-text">Пока никого не выбрали</span></div>
+        </div>
+        <div class="status-row">🟢 Союзный пик (до 4): 
+            <div class="selected-heroes" id="ally-list"><span class="empty-text">Пока никого не выбрали</span></div>
+        </div>
     </div>
 
     <div class="tabs">
@@ -78,10 +89,9 @@
     <input type="text" id="search" placeholder="Поиск героя..." oninput="filterHeroes()">
 
     <div class="grid" id="heroes-grid">
-        <p style="text-align: center; width: 100%; color: #aaa;">Загрузка списка героев с серверов Dota 2...</p>
+        <p style="text-align: center; width: 100%; color: #aaa;">Загрузка списка героев...</p>
     </div>
 
-    <!-- Заглушка, чтобы сетка не перекрывалась нижней кнопкой -->
     <div style="height: 70px;"></div> 
 
     <button class="submit-btn" onclick="sendDraft()">Анализировать Драфт</button>
@@ -91,17 +101,14 @@
         tg.expand();
 
         let heroesData = [];
-        let enemies = [];
-        let allies = [];
+        let enemies = []; // Теперь тут хранятся объекты: {id, name, img}
+        let allies = [];  // Теперь тут хранятся объекты: {id, name, img}
         let currentMode = 'enemy';
 
-        // Загружаем героев через официальный API OpenDota
         async function fetchHeroes() {
             try {
                 const response = await fetch('https://api.opendota.com/api/heroStats');
                 heroesData = await response.json();
-                
-                // Сортируем героев по алфавиту для удобства
                 heroesData.sort((a, b) => a.localized_name.localeCompare(b.localized_name));
                 renderGrid();
             } catch (error) {
@@ -109,101 +116,105 @@
             }
         }
 
-        // Отрисовка сетки
         function renderGrid(searchQuery = '') {
             const grid = document.getElementById('heroes-grid');
             grid.innerHTML = '';
 
             heroesData.forEach(hero => {
                 const name = hero.localized_name;
-                
-                // Фильтр по поиску
                 if (searchQuery && !name.toLowerCase().includes(searchQuery.toLowerCase())) return;
+
+                // ИСПОЛЬЗУЕМ СЕРВЕРА STEAM (CDN) ДЛЯ КАРТИНОК, ЧТОБЫ ОНИ НЕ ЛОМАЛИСЬ
+                const imgUrl = `https://cdn.cloudflare.steamstatic.com${hero.img}`;
 
                 const card = document.createElement('div');
                 card.className = 'hero-card';
                 card.id = `hero-${hero.id}`;
-                card.onclick = () => toggleHero(name, hero.id);
+                card.onclick = () => toggleHero(name, hero.id, imgUrl);
 
-                // Восстановление состояния при отрисовке (поиск/фильтр)
-                if (enemies.includes(name)) card.classList.add('enemy');
-                else if (allies.includes(name)) card.classList.add('ally');
+                if (enemies.some(e => e.id === hero.id)) card.classList.add('enemy');
+                else if (allies.some(a => a.id === hero.id)) card.classList.add('ally');
 
                 card.innerHTML = `
-                    <img src="https://api.opendota.com${hero.img}" alt="${name}" loading="lazy">
+                    <img src="${imgUrl}" alt="${name}" loading="lazy">
                     <div class="hero-name-badge">${name}</div>
                 `;
                 grid.appendChild(card);
             });
         }
 
-        // Переключение режимов выбора
         function setMode(mode) {
             currentMode = mode;
             document.getElementById('btn-enemy').className = 'tab-btn ' + (mode === 'enemy' ? 'active-enemy' : '');
             document.getElementById('btn-ally').className = 'tab-btn ' + (mode === 'ally' ? 'active-ally' : '');
         }
 
-        // Логика клика по герою
-        function toggleHero(name, id) {
+        function toggleHero(name, id, imgUrl) {
             const card = document.getElementById(`hero-${id}`);
+            const heroObj = { id, name, img: imgUrl };
 
             if (currentMode === 'enemy') {
-                if (enemies.includes(name)) {
-                    enemies = enemies.filter(e => e !== name);
+                if (enemies.some(e => e.id === id)) {
+                    enemies = enemies.filter(e => e.id !== id);
                     card.classList.remove('enemy');
                 } else {
-                    if (allies.includes(name)) return tg.showAlert("Этот герой уже в союзниках!");
+                    if (allies.some(a => a.id === id)) return tg.showAlert("Этот герой уже в союзниках!");
                     if (enemies.length >= 5) return tg.showAlert("Максимум 5 врагов!");
-                    enemies.push(name);
+                    enemies.push(heroObj);
                     card.classList.add('enemy');
                 }
             } else {
-                if (allies.includes(name)) {
-                    allies = allies.filter(a => a !== name);
+                if (allies.some(a => a.id === id)) {
+                    allies = allies.filter(a => a.id !== id);
                     card.classList.remove('ally');
                 } else {
-                    if (enemies.includes(name)) return tg.showAlert("Этот герой уже во врагах!");
+                    if (enemies.some(e => e.id === id)) return tg.showAlert("Этот герой уже во врагах!");
                     if (allies.length >= 4) return tg.showAlert("Максимум 4 союзника!");
-                    allies.push(name);
+                    allies.push(heroObj);
                     card.classList.add('ally');
                 }
             }
             updateStatusPanel();
         }
 
-        // Обновление текста сверху
+        // РИСУЕМ КАРТИНКИ ВЕРХУ ВМЕСТО ТЕКСТА
         function updateStatusPanel() {
-            document.getElementById('enemy-list').innerText = enemies.length > 0 ? enemies.join(', ') : 'Пусто';
-            document.getElementById('enemy-list').style.color = enemies.length > 0 ? '#ff4c4c' : '#fff';
-            
-            document.getElementById('ally-list').innerText = allies.length > 0 ? allies.join(', ') : 'Пусто';
-            document.getElementById('ally-list').style.color = allies.length > 0 ? '#43a047' : '#fff';
+            const enemyList = document.getElementById('enemy-list');
+            const allyList = document.getElementById('ally-list');
+
+            if (enemies.length === 0) {
+                enemyList.innerHTML = '<span class="empty-text">Пока никого не выбрали</span>';
+            } else {
+                enemyList.innerHTML = enemies.map(e => `<img src="${e.img}" alt="${e.name}">`).join('');
+            }
+
+            if (allies.length === 0) {
+                allyList.innerHTML = '<span class="empty-text">Пока никого не выбрали</span>';
+            } else {
+                allyList.innerHTML = allies.map(a => `<img src="${a.img}" alt="${a.name}">`).join('');
+            }
         }
 
-        // Поиск по вводу
         function filterHeroes() {
             const query = document.getElementById('search').value;
             renderGrid(query);
         }
 
-        // Отправка данных боту
         function sendDraft() {
             if (enemies.length === 0) {
                 return tg.showAlert("Выбери хотя бы одного вражеского героя (нажми на картинку)!");
             }
             
-            // Собираем имена через запятую, как того ждет наш Python-код!
+            // Превращаем картинки обратно в имена через запятую для Python-бота
             const data = JSON.stringify({
-                enemies: enemies.join(', '), 
-                allies: allies.join(', ')
+                enemies: enemies.map(e => e.name).join(', '), 
+                allies: allies.map(a => a.name).join(', ')
             });
             
             tg.sendData(data);
             tg.close();
         }
 
-        // Запускаем загрузку героев при открытии
         fetchHeroes();
     </script>
 </body>
