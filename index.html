@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dota 2 Draft Picker</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { 
+            background-color: #121212; color: #ffffff; 
+            font-family: Arial, sans-serif; padding: 20px; margin: 0;
+        }
+        h2 { color: #ff4c4c; text-align: center; text-transform: uppercase; }
+        .box { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #aaa; font-weight: bold; font-size: 14px;}
+        input { 
+            width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #333; 
+            background: #2a2a2a; color: white; box-sizing: border-box; font-size: 16px;
+        }
+        input:focus { border-color: #ff4c4c; outline: none; }
+        button { 
+            width: 100%; padding: 16px; background: #e50914; color: white; 
+            border: none; border-radius: 8px; font-weight: bold; font-size: 16px; 
+            cursor: pointer; text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <h2>Dota 2 Драфт</h2>
+    
+    <div class="box">
+        <label>Враги (через запятую):</label>
+        <input type="text" id="enemies" placeholder="Axe, Pudge, Invoker">
+    </div>
+
+    <div class="box">
+        <label>Союзники (кого уже взяли):</label>
+        <input type="text" id="allies" placeholder="Lion, Juggernaut">
+    </div>
+
+    <button onclick="sendDraft()">Подобрать героя</button>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        function sendDraft() {
+            const enemies = document.getElementById('enemies').value.trim();
+            const allies = document.getElementById('allies').value.trim();
+            
+            if(!enemies) {
+                tg.showAlert("Введи хотя бы одного врага!");
+                return;
+            }
+            
+            tg.sendData(JSON.stringify({enemies: enemies, allies: allies}));
+            tg.close();
+        }
+    </script>
+</body>
+</html>
