@@ -3,211 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dota 2 Draft Analyzer</title>
-    <!-- Подключаем библиотеку Telegram Web App -->
+    <title>Dota Draft</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            background-color: #121212;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 20px;
-            margin: 0;
-        }
-        h2 {
-            text-align: center;
-            color: #e0e0e0;
-            margin-bottom: 20px;
-        }
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        input[type="text"] {
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            background-color: #1e1e1e;
-            color: #fff;
-            font-size: 16px;
-            outline: none;
-        }
-        input[type="text"]:focus {
-            border-color: #555;
-        }
-        .buttons-row {
-            display: flex;
-            gap: 10px;
-        }
-        button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        button:active {
-            opacity: 0.8;
-        }
-        .btn-enemy {
-            background-color: #d32f2f;
-            color: white;
-        }
-        .btn-ally {
-            background-color: #1976d2;
-            color: white;
-        }
-        .btn-send {
-            background-color: #388e3c;
-            color: white;
-            width: 100%;
-            padding: 15px;
-            font-size: 16px;
-            margin-top: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        .draft-section {
-            background-color: #1e1e1e;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            min-height: 60px;
-        }
-        .draft-section h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-size: 16px;
-            color: #aaa;
-            border-bottom: 1px solid #333;
-            padding-bottom: 5px;
-        }
-        .hero-tag {
-            display: inline-block;
-            background-color: #333;
-            padding: 6px 12px;
-            border-radius: 15px;
-            margin: 4px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        .hero-tag.enemy-tag { border: 1px solid #d32f2f; }
-        .hero-tag.ally-tag { border: 1px solid #1976d2; }
-        .role-text { color: #ffb300; font-weight: bold; margin-left: 5px; }
-        .hint { font-size: 12px; color: #777; text-align: center; margin-top: 10px; }
+        body { background: #121212; color: #fff; font-family: sans-serif; padding: 10px; }
+        #searchInput { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: none; background: #222; color: #fff; }
+        .hero-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+        .hero-item { cursor: pointer; text-align: center; }
+        .hero-item img { width: 100%; border-radius: 4px; border: 2px solid transparent; }
+        .hero-item:hover img { border-color: #ff9800; }
+        .draft-list { margin-top: 15px; padding: 10px; background: #1e1e1e; border-radius: 8px; }
+        .btn-send { background: #388e3c; color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; margin-top: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>Анализатор Драфта</h2>
+    <input type="text" id="searchInput" placeholder="Быстрый поиск героя..." oninput="filterHeroes()">
 
-    <div class="input-group">
-        <input type="text" id="heroNameInput" placeholder="Имя героя (на англ, напр. Axe)">
-        <div class="buttons-row">
-            <button class="btn-enemy" onclick="addHero('enemies')">Враг ⚔️</button>
-            <button class="btn-ally" onclick="addHero('allies')">Союзник 🛡</button>
-        </div>
+    <div class="hero-grid" id="heroGrid"></div>
+
+    <div class="draft-list">
+        <h3>Враги: <span id="eList"></span></h3>
+        <h3>Союзники: <span id="aList"></span></h3>
     </div>
 
-    <div class="draft-section">
-        <h3>Вражеский пик:</h3>
-        <div id="enemiesContainer"></div>
-    </div>
-
-    <div class="draft-section">
-        <h3>Союзный пик:</h3>
-        <div id="alliesContainer"></div>
-    </div>
-    
-    <div class="hint">Нажми на героя в списке, чтобы удалить его</div>
-
-    <button class="btn-send" onclick="sendToBot()">Анализировать пик 🚀</button>
+    <button class="btn-send" onclick="sendToBot()">АНАЛИЗИРОВАТЬ 🚀</button>
 
     <script>
-        // Инициализация Telegram Web App
         let tg = window.Telegram.WebApp;
-        tg.expand(); // Расширяем окно на весь экран телефона
+        tg.expand();
+        
+        let heroes = []; // Сюда загрузим список героев
+        let draft = { enemies: [], allies: [] };
 
-        let draft = {
-            enemies: [],
-            allies: []
-        };
+        // Загружаем список героев с OpenDota
+        fetch('https://raw.githubusercontent.com/odota/dotaconstants/master/build/heroes.json')
+            .then(r => r.json())
+            .then(data => {
+                heroes = Object.values(data);
+                renderGrid(heroes);
+            });
 
-        function addHero(team) {
-            let input = document.getElementById("heroNameInput");
-            let heroName = input.value.trim();
-
-            if (!heroName) {
-                tg.showAlert("Сначала введи имя героя!");
-                return;
-            }
-
-            // Запрашиваем роль у пользователя
-            let role = prompt(`Введи позицию для ${heroName} (от 1 до 5):\nОставь пустым, если позиция неизвестна.`, "");
-            
-            // Если пользователь нажал "Отмена" в окошке
-            if (role === null) return; 
-            
-            // Если ничего не ввел
-            if (role.trim() === "") {
-                role = "?"; 
-            }
-
-            // Формируем объект героя
-            let heroData = {
-                name: heroName,
-                role: role
-            };
-
-            draft[team].push(heroData);
-            
-            input.value = ""; // Очищаем поле ввода
-            renderLists();
+        function renderGrid(list) {
+            const grid = document.getElementById('heroGrid');
+            grid.innerHTML = list.map(h => `
+                <div class="hero-item" onclick="addHero('${h.localized_name}')">
+                    <img src="https://api.opendota.com/apps/dota2/images/dota_react/heroes/${h.name.replace('npc_dota_hero_', '')}.png">
+                </div>
+            `).join('');
         }
 
-        function removeHero(team, index) {
-            draft[team].splice(index, 1);
-            renderLists();
+        function filterHeroes() {
+            let val = document.getElementById('searchInput').value.toLowerCase();
+            renderGrid(heroes.filter(h => h.localized_name.toLowerCase().includes(val)));
         }
 
-        function renderLists() {
-            let enemiesHtml = draft.enemies.map((h, index) => 
-                `<div class="hero-tag enemy-tag" onclick="removeHero('enemies', ${index})">
-                    ${h.name} <span class="role-text">[Поз: ${h.role}]</span>
-                </div>`
-            ).join('');
+        function addHero(name) {
+            let role = prompt(`Позиция для ${name} (1-5)?`, "");
+            if (role === null) return;
             
-            let alliesHtml = draft.allies.map((h, index) => 
-                `<div class="hero-tag ally-tag" onclick="removeHero('allies', ${index})">
-                    ${h.name} <span class="role-text">[Поз: ${h.role}]</span>
-                </div>`
-            ).join('');
+            // Спрашиваем, куда добавить
+            if(confirm("Добавить во Враги? (Отмена = Союзники)")) {
+                draft.enemies.push({name, role: role || "?"});
+            } else {
+                draft.allies.push({name, role: role || "?"});
+            }
+            updateDraftView();
+        }
 
-            document.getElementById("enemiesContainer").innerHTML = enemiesHtml;
-            document.getElementById("alliesContainer").innerHTML = alliesHtml;
+        function updateDraftView() {
+            document.getElementById('eList').innerText = draft.enemies.map(h => h.name).join(', ');
+            document.getElementById('aList').innerText = draft.allies.map(h => h.name).join(', ');
         }
 
         function sendToBot() {
-            if (draft.enemies.length === 0) {
-                tg.showAlert("Добавь хотя бы одного врага для анализа!");
-                return;
-            }
-
-            // Превращаем массивы объектов обратно в строки вида "Axe:3, Lion:4" для Питона
-            let enemiesString = draft.enemies.map(h => `${h.name}:${h.role}`).join(", ");
-            let alliesString = draft.allies.map(h => `${h.name}:${h.role}`).join(", ");
-
-            let dataToSend = {
-                enemies: enemiesString,
-                allies: alliesString
-            };
-
-            // Отправляем JSON строку в Telegram бота
-            tg.sendData(JSON.stringify(dataToSend));
+            tg.sendData(JSON.stringify({
+                enemies: draft.enemies.map(h => `${h.name}:${h.role}`).join(", "),
+                allies: draft.allies.map(h => `${h.name}:${h.role}`).join(", ")
+            }));
         }
     </script>
 </body>
