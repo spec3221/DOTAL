@@ -8,263 +8,640 @@
     <style>
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
         body {
-            margin: 0;
             background: #121212;
             color: #fff;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             padding: 12px;
+            min-height: 100vh;
         }
         h2 {
-            margin: 0 0 10px;
+            margin: 0 0 12px 0;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .toolbar {
             display: flex;
             gap: 8px;
-            align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         input {
             flex: 1;
-            padding: 10px;
-            border-radius: 8px;
-            border: none;
-            background: #222;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            background: #1e1e1e;
             color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            border-color: #1976d2;
         }
         button {
-            padding: 10px 14px;
+            padding: 10px 16px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             background: #2e7d32;
             color: #fff;
             cursor: pointer;
-        }
-        .mode button {
-            background: #333;
-        }
-        .mode .active {
-            background: #1976d2;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-            gap: 8px;
-            margin-top: 10px;
-        }
-        .hero {
-            cursor: pointer;
-            text-align: center;
-        }
-        .hero img {
-            width: 100%;
-            border-radius: 6px;
-            border: 2px solid transparent;
-            background: #1e1e1e;
-        }
-        .hero.selected img {
-            border-color: #00e676;
-            opacity: 0.65;
-        }
-        .hero small {
-            display: block;
-            font-size: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
-        .panel {
-            margin-top: 14px;
-            background: #1d1d1d;
-            padding: 10px;
-            border-radius: 10px;
+        button:hover {
+            opacity: 0.85;
+            transform: scale(0.98);
         }
-        .item {
-            display: flex;
-            justify-content: space-between;
-            padding: 4px 0;
-            border-bottom: 1px solid #2a2a2a;
-        }
-        .item button {
-            background: #b71c1c;
-            padding: 2px 8px;
-            border-radius: 4px;
-        }
-        .rolebar {
-            display: flex;
-            gap: 4px;
-            margin: 10px 0;
-        }
-        .role {
-            background: #444;
-            padding: 6px 12px;
-            border-radius: 6px;
-            border: none;
-            color: #fff;
-            cursor: pointer;
-        }
-        .role.active {
-            background: #ff9800;
+        button:active {
+            transform: scale(0.95);
         }
         .mode {
             display: flex;
             gap: 8px;
+            margin-bottom: 10px;
+        }
+        .mode button {
+            flex: 1;
+            background: #2a2a2a;
+        }
+        .mode .active {
+            background: #1976d2;
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+            min-height: 200px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .hero {
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .hero:hover {
+            transform: translateY(-2px);
+        }
+        .hero img {
+            width: 100%;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            background: #1a1a1a;
+            aspect-ratio: 1/0.8;
+            object-fit: cover;
+            transition: all 0.2s;
+        }
+        .hero.selected img {
+            border-color: #ff6b35;
+            opacity: 0.6;
+        }
+        .hero .badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #ff6b35;
+            color: #fff;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 11px;
+            font-weight: bold;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
+        }
+        .hero.selected .badge {
+            display: flex;
+        }
+        .hero small {
+            display: block;
+            font-size: 10px;
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #aaa;
+        }
+        .panel {
+            margin-top: 8px;
+            background: #1a1a1a;
+            padding: 12px;
+            border-radius: 12px;
+        }
+        .panel h3 {
+            font-size: 14px;
+            margin: 8px 0 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .panel h3:first-child {
+            margin-top: 0;
+        }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            margin: 2px 0;
+            border-radius: 6px;
+            background: #222;
+            font-size: 13px;
+        }
+        .item button {
+            background: #b71c1c;
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 30px;
+        }
+        .item .role-tag {
+            background: #ff6b35;
+            color: #fff;
+            padding: 0 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 8px;
         }
         #send {
-            margin-top: 12px;
             width: 100%;
+            margin-top: 12px;
             background: #0d6efd;
+            font-size: 16px;
+            padding: 12px;
+        }
+        #send:hover {
+            background: #0b5ed7;
+        }
+        .empty-state {
+            color: #666;
+            text-align: center;
+            padding: 20px;
+            font-size: 13px;
+            grid-column: 1 / -1;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #aaa;
+        }
+        .stats span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.2s;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: #1e1e1e;
+            padding: 24px;
+            border-radius: 16px;
+            max-width: 320px;
+            width: 90%;
+            animation: slideUp 0.3s;
+        }
+        .modal h3 {
+            margin: 0 0 16px 0;
+            text-align: center;
+            font-size: 18px;
+            color: #ff6b35;
+        }
+        .modal .hero-preview {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .modal .hero-preview img {
+            width: 80px;
+            border-radius: 8px;
+            border: 2px solid #333;
+        }
+        .modal .hero-preview .name {
+            margin-top: 8px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .modal .role-options {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin: 16px 0;
+        }
+        .modal .role-options button {
+            padding: 12px 0;
+            background: #2a2a2a;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+        }
+        .modal .role-options button:hover {
+            background: #ff6b35;
+            transform: scale(1.05);
+        }
+        .modal .cancel-btn {
+            width: 100%;
+            background: #444;
+            margin-top: 8px;
+        }
+        .modal .cancel-btn:hover {
+            background: #555;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @media (max-width: 480px) {
+            .grid {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+                max-height: 400px;
+            }
+            .hero small {
+                font-size: 9px;
+            }
+            .modal .role-options button {
+                padding: 10px 0;
+                font-size: 16px;
+            }
+        }
+        .loading-placeholder {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 0;
+            color: #666;
+        }
+        .loading-placeholder .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #333;
+            border-top-color: #1976d2;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .hero-count {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <h2>⚔️ Dota Draft</h2>
+    
     <div class="toolbar">
-        <input id="search" placeholder="🔍 Поиск героя...">
+        <input id="search" placeholder="🔍 Поиск героя..." autofocus>
     </div>
+    
     <div class="mode">
-        <button id="allyBtn" class="active">🤝 Союзники</button>
-        <button id="enemyBtn">👹 Враги</button>
+        <button id="enemyBtn" class="active">👹 Враги</button>
+        <button id="allyBtn">🤝 Союзники</button>
     </div>
-    <div class="rolebar" id="roles"></div>
+    
     <div class="grid" id="grid"></div>
 
     <div class="panel">
-        <h3>🟢 Союзники</h3>
-        <div id="allies"></div>
-        <h3>🔴 Враги</h3>
-        <div id="enemies"></div>
+        <div class="stats">
+            <span>👹 Враги: <span id="enemyCount">0/4</span></span>
+            <span>🤝 Союзники: <span id="allyCount">0/4</span></span>
+        </div>
+        <h3>👹 Враги</h3>
+        <div id="enemies"><div class="empty-state">Нет выбранных врагов</div></div>
+        <h3>🤝 Союзники</h3>
+        <div id="allies"><div class="empty-state">Нет выбранных союзников</div></div>
         <button id="send">📤 Отправить в бота</button>
+    </div>
+
+    <!-- Модальное окно для выбора роли -->
+    <div class="modal-overlay" id="roleModal">
+        <div class="modal">
+            <h3>🎯 Выберите роль</h3>
+            <div class="hero-preview">
+                <img id="modalHeroImage" src="" alt="Hero">
+                <div class="name" id="modalHeroName">Hero Name</div>
+            </div>
+            <div class="role-options">
+                <button data-role="1">1</button>
+                <button data-role="2">2</button>
+                <button data-role="3">3</button>
+                <button data-role="4">4</button>
+                <button data-role="5">5</button>
+            </div>
+            <button class="cancel-btn" id="modalCancel">Отмена</button>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram?.WebApp;
         if (tg) tg.expand();
 
-        let heroes = [];
-        let mode = "allies";
-        let role = "1";
-        const draft = { allies: [], enemies: [] };
+        // Встроенный список героев (топ-50 популярных)
+        const HEROES_DATA = [
+            { id: 1, name: "npc_dota_hero_antimage", localized_name: "Anti-Mage" },
+            { id: 2, name: "npc_dota_hero_axe", localized_name: "Axe" },
+            { id: 3, name: "npc_dota_hero_bane", localized_name: "Bane" },
+            { id: 4, name: "npc_dota_hero_bloodseeker", localized_name: "Bloodseeker" },
+            { id: 5, name: "npc_dota_hero_crystal_maiden", localized_name: "Crystal Maiden" },
+            { id: 6, name: "npc_dota_hero_drow_ranger", localized_name: "Drow Ranger" },
+            { id: 7, name: "npc_dota_hero_earthshaker", localized_name: "Earthshaker" },
+            { id: 8, name: "npc_dota_hero_juggernaut", localized_name: "Juggernaut" },
+            { id: 9, name: "npc_dota_hero_mirana", localized_name: "Mirana" },
+            { id: 10, name: "npc_dota_hero_nevermore", localized_name: "Shadow Fiend" },
+            { id: 11, name: "npc_dota_hero_phantom_assassin", localized_name: "Phantom Assassin" },
+            { id: 12, name: "npc_dota_hero_pudge", localized_name: "Pudge" },
+            { id: 13, name: "npc_dota_hero_razor", localized_name: "Razor" },
+            { id: 14, name: "npc_dota_hero_sand_king", localized_name: "Sand King" },
+            { id: 15, name: "npc_dota_hero_storm_spirit", localized_name: "Storm Spirit" },
+            { id: 16, name: "npc_dota_hero_sven", localized_name: "Sven" },
+            { id: 17, name: "npc_dota_hero_tiny", localized_name: "Tiny" },
+            { id: 18, name: "npc_dota_hero_vengefulspirit", localized_name: "Vengeful Spirit" },
+            { id: 19, name: "npc_dota_hero_windrunner", localized_name: "Windranger" },
+            { id: 20, name: "npc_dota_hero_zuus", localized_name: "Zeus" },
+            { id: 21, name: "npc_dota_hero_kunkka", localized_name: "Kunkka" },
+            { id: 22, name: "npc_dota_hero_lina", localized_name: "Lina" },
+            { id: 23, name: "npc_dota_hero_lion", localized_name: "Lion" },
+            { id: 24, name: "npc_dota_hero_shadow_shaman", localized_name: "Shadow Shaman" },
+            { id: 25, name: "npc_dota_hero_slardar", localized_name: "Slardar" },
+            { id: 26, name: "npc_dota_hero_tidehunter", localized_name: "Tidehunter" },
+            { id: 27, name: "npc_dota_hero_witch_doctor", localized_name: "Witch Doctor" },
+            { id: 28, name: "npc_dota_hero_riki", localized_name: "Riki" },
+            { id: 29, name: "npc_dota_hero_enigma", localized_name: "Enigma" },
+            { id: 30, name: "npc_dota_hero_tinker", localized_name: "Tinker" },
+            { id: 31, name: "npc_dota_hero_sniper", localized_name: "Sniper" },
+            { id: 32, name: "npc_dota_hero_necrolyte", localized_name: "Necrophos" },
+            { id: 33, name: "npc_dota_hero_weaver", localized_name: "Weaver" },
+            { id: 34, name: "npc_dota_hero_spectre", localized_name: "Spectre" },
+            { id: 35, name: "npc_dota_hero_phantom_lancer", localized_name: "Phantom Lancer" },
+            { id: 36, name: "npc_dota_hero_centaur", localized_name: "Centaur Warrunner" },
+            { id: 37, name: "npc_dota_hero_rubick", localized_name: "Rubick" },
+            { id: 38, name: "npc_dota_hero_invoker", localized_name: "Invoker" },
+            { id: 39, name: "npc_dota_hero_dragon_knight", localized_name: "Dragon Knight" },
+            { id: 40, name: "npc_dota_hero_faceless_void", localized_name: "Faceless Void" },
+            { id: 41, name: "npc_dota_hero_meepo", localized_name: "Meepo" },
+            { id: 42, name: "npc_dota_hero_abaddon", localized_name: "Abaddon" },
+            { id: 43, name: "npc_dota_hero_brewmaster", localized_name: "Brewmaster" },
+            { id: 44, name: "npc_dota_hero_treant", localized_name: "Treant Protector" },
+            { id: 45, name: "npc_dota_hero_ogre_magi", localized_name: "Ogre Magi" },
+            { id: 46, name: "npc_dota_hero_huskar", localized_name: "Huskar" },
+            { id: 47, name: "npc_dota_hero_nyx_assassin", localized_name: "Nyx Assassin" },
+            { id: 48, name: "npc_dota_hero_ember_spirit", localized_name: "Ember Spirit" },
+            { id: 49, name: "npc_dota_hero_earth_spirit", localized_name: "Earth Spirit" },
+            { id: 50, name: "npc_dota_hero_monkey_king", localized_name: "Monkey King" }
+        ];
 
-        // Роли 1-5
-        const rolesContainer = document.getElementById('roles');
-        for (let i = 1; i <= 5; i++) {
-            let btn = document.createElement("button");
-            btn.className = "role" + (i === 1 ? " active" : "");
-            btn.textContent = i;
-            btn.onclick = () => {
-                role = "" + i;
-                document.querySelectorAll(".role").forEach(x => x.classList.remove("active"));
-                btn.classList.add("active");
-            };
-            rolesContainer.appendChild(btn);
-        }
+        let heroes = HEROES_DATA;
+        let mode = "enemies";
+        const draft = { allies: [], enemies: [] };
+        const MAX_HEROES = 4;
+        let pendingHero = null;
 
         const allyBtn = document.getElementById('allyBtn');
         const enemyBtn = document.getElementById('enemyBtn');
         const search = document.getElementById('search');
         const grid = document.getElementById('grid');
         const sendBtn = document.getElementById('send');
+        const allyCount = document.getElementById('allyCount');
+        const enemyCount = document.getElementById('enemyCount');
+        const roleModal = document.getElementById('roleModal');
+        const modalHeroImage = document.getElementById('modalHeroImage');
+        const modalHeroName = document.getElementById('modalHeroName');
+        const modalCancel = document.getElementById('modalCancel');
 
-        allyBtn.onclick = () => {
-            mode = "allies";
-            allyBtn.classList.add("active");
-            enemyBtn.classList.remove("active");
-        };
+        // Переключение режимов
         enemyBtn.onclick = () => {
             mode = "enemies";
             enemyBtn.classList.add("active");
             allyBtn.classList.remove("active");
+            updateGrid();
         };
-
-        // Загрузка героев
-        fetch("https://raw.githubusercontent.com/odota/dotaconstants/master/build/heroes.json")
-            .then(r => r.json())
-            .then(data => {
-                heroes = Object.values(data);
-                draw(heroes);
-            })
-            .catch(() => alert("Не удалось загрузить героев"));
+        allyBtn.onclick = () => {
+            mode = "allies";
+            allyBtn.classList.add("active");
+            enemyBtn.classList.remove("active");
+            updateGrid();
+        };
 
         search.oninput = () => {
-            const query = search.value.toLowerCase();
-            draw(heroes.filter(h =>
-                h.localized_name.toLowerCase().includes(query) ||
-                h.name.toLowerCase().includes(query)
-            ));
+            updateGrid();
         };
 
-        function exists(name) {
-            return draft.allies.concat(draft.enemies).some(x => x.name === name);
+        function isHeroSelected(heroName) {
+            return draft.allies.some(h => h.name === heroName) || 
+                   draft.enemies.some(h => h.name === heroName);
         }
 
-        function draw(list) {
+        function getHeroRole(heroName) {
+            const found = draft.allies.find(h => h.name === heroName) || 
+                         draft.enemies.find(h => h.name === heroName);
+            return found ? found.role : null;
+        }
+
+        function getHeroImageUrl(heroName) {
+            const imgName = heroName.replace("npc_dota_hero_", "");
+            return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${imgName}.png`;
+        }
+
+        function updateGrid() {
+            if (!heroes || heroes.length === 0) {
+                grid.innerHTML = '<div class="empty-state">❌ Нет данных о героях</div>';
+                return;
+            }
+
+            const query = search.value.toLowerCase();
+            const filtered = heroes.filter(h =>
+                h.localized_name.toLowerCase().includes(query) ||
+                h.name.toLowerCase().includes(query)
+            );
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="empty-state">🔍 Герои не найдены</div>';
+                return;
+            }
+
             grid.innerHTML = "";
-            list.forEach(h => {
-                // Формируем имя файла: убираем "npc_dota_hero_"
-                const imgName = h.name.replace("npc_dota_hero_", "");
-                // Используем правильный URL для картинок
-                const imgUrl = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${imgName}.png`;
+            filtered.forEach(h => {
+                const imgUrl = getHeroImageUrl(h.name);
+                const selected = isHeroSelected(h.localized_name);
+                const heroRole = getHeroRole(h.localized_name);
 
                 const card = document.createElement("div");
-                card.className = "hero" + (exists(h.localized_name) ? " selected" : "");
+                card.className = "hero" + (selected ? " selected" : "");
 
                 card.innerHTML = `
-                    <img src="${imgUrl}" alt="${h.localized_name}" loading="lazy" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2236%22%3E%3Crect width=%2264%22 height=%2236%22 fill=%22%23333%22/%3E%3Ctext x=%2232%22 y=%2222%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2212%22 font-family=%22Arial%22%3E${h.localized_name.substring(0,3)}%3C/text%3E%3C/svg%3E'">
+                    <div style="position:relative;">
+                        <img src="${imgUrl}" alt="${h.localized_name}" loading="lazy" decoding="async"
+                             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2236%22%3E%3Crect width=%2264%22 height=%2236%22 fill=%22%23333%22/%3E%3Ctext x=%2232%22 y=%2222%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2212%22 font-family=%22Arial%22%3E${h.localized_name.substring(0,3)}%3C/text%3E%3C/svg%3E'">
+                        ${selected ? `<div class="badge">${heroRole || '✓'}</div>` : ''}
+                    </div>
                     <small>${h.localized_name}</small>
                 `;
 
                 card.onclick = () => {
-                    if (exists(h.localized_name)) return;
-                    draft[mode].push({ id: h.id, name: h.localized_name, role });
-                    renderLists();
-                    // Перерисовываем с учётом фильтра
-                    const query = search.value.toLowerCase();
-                    draw(heroes.filter(h2 =>
-                        h2.localized_name.toLowerCase().includes(query) ||
-                        h2.name.toLowerCase().includes(query)
-                    ));
+                    if (selected) {
+                        // Удаляем героя
+                        const allyIndex = draft.allies.findIndex(a => a.name === h.localized_name);
+                        if (allyIndex !== -1) draft.allies.splice(allyIndex, 1);
+                        const enemyIndex = draft.enemies.findIndex(e => e.name === h.localized_name);
+                        if (enemyIndex !== -1) draft.enemies.splice(enemyIndex, 1);
+                        renderLists();
+                        updateGrid();
+                    } else {
+                        // Проверяем лимиты
+                        if (draft[mode].length >= MAX_HEROES) {
+                            alert(`⚠️ Нельзя добавить больше ${MAX_HEROES} героев в ${mode === 'allies' ? 'союзники' : 'враги'}`);
+                            return;
+                        }
+                        // Показываем модалку для выбора роли
+                        pendingHero = h;
+                        modalHeroImage.src = imgUrl;
+                        modalHeroName.textContent = h.localized_name;
+                        roleModal.classList.add('active');
+                    }
                 };
 
                 grid.appendChild(card);
             });
         }
 
+        // Обработка выбора роли в модалке
+        document.querySelectorAll('.role-options button').forEach(btn => {
+            btn.onclick = () => {
+                if (!pendingHero) return;
+                const role = parseInt(btn.dataset.role);
+                draft[mode].push({ 
+                    id: pendingHero.id, 
+                    name: pendingHero.localized_name, 
+                    role: role 
+                });
+                roleModal.classList.remove('active');
+                pendingHero = null;
+                renderLists();
+                updateGrid();
+            };
+        });
+
+        modalCancel.onclick = () => {
+            roleModal.classList.remove('active');
+            pendingHero = null;
+        };
+
+        roleModal.onclick = (e) => {
+            if (e.target === roleModal) {
+                roleModal.classList.remove('active');
+                pendingHero = null;
+            }
+        };
+
         function renderLists() {
-            for (const side of ["allies", "enemies"]) {
+            for (const side of ["enemies", "allies"]) {
                 const box = document.getElementById(side);
                 box.innerHTML = "";
-                draft[side].forEach((h, i) => {
+                
+                if (draft[side].length === 0) {
+                    box.innerHTML = `<div class="empty-state">Нет выбранных ${side === 'allies' ? 'союзников' : 'врагов'}</div>`;
+                    continue;
+                }
+
+                const sorted = [...draft[side]].sort((a, b) => a.role - b.role);
+                
+                sorted.forEach((h, i) => {
                     const div = document.createElement("div");
                     div.className = "item";
-                    div.innerHTML = `<span>${h.name} (pos ${h.role})</span>`;
+                    div.innerHTML = `
+                        <span>
+                            <span class="role-tag">${h.role}</span>
+                            ${h.name}
+                        </span>
+                    `;
                     const removeBtn = document.createElement("button");
                     removeBtn.textContent = "✕";
-                    removeBtn.onclick = () => {
-                        draft[side].splice(i, 1);
-                        renderLists();
-                        const query = search.value.toLowerCase();
-                        draw(heroes.filter(h2 =>
-                            h2.localized_name.toLowerCase().includes(query) ||
-                            h2.name.toLowerCase().includes(query)
-                        ));
+                    removeBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        const index = draft[side].indexOf(h);
+                        if (index !== -1) {
+                            draft[side].splice(index, 1);
+                            renderLists();
+                            updateGrid();
+                        }
                     };
                     div.appendChild(removeBtn);
                     box.appendChild(div);
                 });
             }
+            
+            allyCount.textContent = `${draft.allies.length}/${MAX_HEROES}`;
+            enemyCount.textContent = `${draft.enemies.length}/${MAX_HEROES}`;
         }
 
         sendBtn.onclick = () => {
             if (!draft.allies.length && !draft.enemies.length) {
-                alert("Добавьте хотя бы одного героя");
+                alert("⚠️ Добавьте хотя бы одного героя");
                 return;
             }
-            const data = JSON.stringify(draft);
-            if (tg) tg.sendData(data);
-            else alert(data);
+            
+            if (draft.allies.length === 0 || draft.enemies.length === 0) {
+                if (!confirm(`⚠️ Вы выбрали только ${draft.allies.length ? 'союзников' : 'врагов'}. Продолжить?`)) {
+                    return;
+                }
+            }
+            
+            const data = JSON.stringify({
+                allies: draft.allies,
+                enemies: draft.enemies,
+                timestamp: new Date().toISOString()
+            });
+            
+            if (tg) {
+                tg.sendData(data);
+                tg.close();
+            } else {
+                alert("📋 Данные для отправки:\n" + data);
+                console.log("Draft data:", JSON.parse(data));
+            }
         };
+
+        // Инициализация
+        updateGrid();
+        renderLists();
     </script>
 </body>
 </html>
